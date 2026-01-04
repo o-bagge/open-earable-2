@@ -10,7 +10,7 @@ BQ25120a battery_controller(&I2C1);
 BQ25120a::BQ25120a(TWIM * i2c) : _i2c(i2c) { //, load_switch(LoadSwitch(GPIO_DT_SPEC_GET(DT_NODELABEL(bq25120a), lsctrl_gpios))) {
 
 }
-
+// commit to test if workflow runs
 int BQ25120a::begin() {
         int ret;
 
