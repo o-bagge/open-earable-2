@@ -88,7 +88,6 @@ jobs:
             (cd "$out/fota" && zip -r "../openearable_v2_fota.zip" .)
 
             mv "$out/elf/openearable_v2_firmware.elf" "$out/openearable_v2_firmware.elf"
-            mv "$out/openearable_v2_fota.zip" "$out/openearable_v2_fota.zip"
 
             rm -rf "$out/elf" "$out/fota"
             
