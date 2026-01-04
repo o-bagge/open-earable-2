@@ -43,7 +43,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr list --repo "${{ github.repository }}" --state open --json number,headRefOid --limit 200 > prs.json
+          gh pr list --repo "${{ github.repository }}" --state open --json number,headRefOid,title --limit 200 > prs.json
 
       - name: Download artifacts from each PR's latest successful build
         env:
@@ -55,6 +55,9 @@ jobs:
           jq -c '.[]' prs.json | while read -r pr; do
             num=$(echo "$pr" | jq -r .number)
             sha=$(echo "$pr" | jq -r .headRefOid)
+            title=$(echo "$pr" | jq -r .title)
+
+            safe_title=$(echo "$title" | sed 's/[^a-zA-Z0-9_-]/_/g' | cut -c1-50)
 
             run_id=$(gh run list \
               --repo "${{ github.repository }}" \
@@ -91,7 +94,9 @@ jobs:
 
             rm -rf "$out/elf" "$out/fota"
             
-            echo "PR #$num: artifacts downloaded and prepared successfully"
+            echo "$safe_title" > "$out/title.txt"
+            
+            echo "PR #$num ($title): artifacts downloaded and prepared successfully"
           done
 
 
@@ -100,13 +105,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          mkdir -p collected/upload
 
           find collected -type f \( -name "*.elf" -o -name "*.zip" \) | while read -r f; do
             pr=$(echo "$f" | sed -n 's#.*/pr-\([0-9]\+\)/.*#\1#p')
             base=$(basename "$f")
-            asset="pr-${pr}-${base}"
-            mv "$f" "collected/$asset"
-            gh release upload "$TAG" "collected/$asset" --repo "${{ github.repository }}" --clobber
+
+            title_file="collected/pr-$pr/title.txt"
+            if [ -f "$title_file" ]; then
+              safe_title=$(cat "$title_file")
+              asset="pr-${pr}-${safe_title}-${base}"
+            else
+              asset="pr-${pr}-${base}"
+            fi
+
+            cp "$f" "collected/upload/$asset"
+            gh release upload "$TAG" "collected/upload/$asset" --repo "${{ github.repository }}" --clobber
           done
 
           # delete assets of closed PRs
@@ -121,6 +135,7 @@ jobs:
               gh release delete-asset "$TAG" "$asset" --repo "${{ github.repository }}" --yes
             fi
           done
+
 
 
       
