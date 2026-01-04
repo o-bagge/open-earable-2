@@ -105,7 +105,8 @@ jobs:
             pr=$(echo "$f" | sed -n 's#.*/pr-\([0-9]\+\)/.*#\1#p')
             base=$(basename "$f")
             asset="pr-${pr}-${base}"
-            gh release upload "$TAG" "$f" --repo "${{ github.repository }}" --clobber --name "$asset"
+            mv "$f" "collected/$asset"
+            gh release upload "$TAG" "collected/$asset" --repo "${{ github.repository }}" --clobber
           done
 
           # delete assets of closed PRs
